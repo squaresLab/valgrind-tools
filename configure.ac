@@ -8,7 +8,7 @@
 ##------------------------------------------------------------##
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT([Valgrind],[3.13.0],[valgrind-users@lists.sourceforge.net])
+AC_INIT([Valgrind],[3.14.0.SVN],[valgrind-users@lists.sourceforge.net])
 AC_CONFIG_SRCDIR(coregrind/m_main.c)
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -2110,7 +2110,7 @@ AC_MSG_CHECKING([if gcc accepts -g -gz=zlib])
 safe_CFLAGS=$CFLAGS
 CFLAGS="-g -gz=zlib"
 
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ ]], [[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[ ]], [[
   return 0;
 ]])], [
 ac_have_gz_zlib=yes
@@ -2130,7 +2130,7 @@ AC_MSG_CHECKING([if gcc accepts -g -gz=zlib-gnu])
 safe_CFLAGS=$CFLAGS
 CFLAGS="-g -gz=zlib-gnu"
 
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ ]], [[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[ ]], [[
   return 0;
 ]])], [
 ac_have_gz_zlib_gnu=yes
@@ -4431,6 +4431,8 @@ AC_CONFIG_FILES([
    none/tests/x86-darwin/Makefile
    none/tests/amd64-solaris/Makefile
    none/tests/x86-solaris/Makefile
+   debgrind/Makefile
+   debgrind/tests/Makefile
    exp-sgcheck/Makefile
    exp-sgcheck/tests/Makefile
    drd/Makefile
