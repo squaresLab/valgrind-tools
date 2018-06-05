@@ -4403,6 +4403,9 @@ AC_CONFIG_FILES([
    callgrind/callgrind_annotate
    callgrind/callgrind_control
    callgrind/tests/Makefile
+   debgrind/Makefile
+   debgrind/tests/Makefile
+   debgrind/docs/Makefile
    helgrind/Makefile
    helgrind/tests/Makefile
    massif/Makefile
@@ -4431,8 +4434,6 @@ AC_CONFIG_FILES([
    none/tests/x86-darwin/Makefile
    none/tests/amd64-solaris/Makefile
    none/tests/x86-solaris/Makefile
-   debgrind/Makefile
-   debgrind/tests/Makefile
    exp-sgcheck/Makefile
    exp-sgcheck/tests/Makefile
    drd/Makefile
