@@ -1,0 +1,30 @@
+July 2018
+Deby Katz
+
+This README describes how to install and run the "Debgrind" tool, based 
+on Valgrind.
+
+There is a dockerfile included in this repository at docker/Dockerfile.
+If you have a base docker image that is based on Ubuntu, you can change
+the "FROM" line in the dockerfile to the name of your base image to build a
+new image with the tools installed.
+
+From inside the docker directory, where valgrind-tools is the name of the new
+docker image:
+> docker build . -t valgrind-tools
+
+
+Alternately, you can execute the following commands on Ubuntu, after
+setting an appropriate PARENT_DIR:
+
+apt-get install automake make autoconf git g++ libc6-dbg
+cd $PARENT_DIR
+git clone https://github.com/squaresLab/valgrind-tools.git
+cd $PARENT_DIR/valgrind-tools
+./autogen.sh
+./configure --prefix=$PARENT_DIR/valgrind-bin
+make install
+
+
+To run the tool on the program "date":
+$PARENT_DIR/valgrind-bin/bin/valgrind --trace-children=yes --tool=debgrind --output-file=output_filename.out date
