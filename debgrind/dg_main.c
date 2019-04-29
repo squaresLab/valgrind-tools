@@ -176,11 +176,11 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
       if (data->tag == Iex_Load) {
 	addr_expr = data->Iex.Load.addr;
 
-	if (addr_expr > max_wrtmp_addr || max_wrtmp_addr == 0) {
-	  max_wrtmp_addr = addr_expr;
+	if ((ULong)addr_expr > max_wrtmp_addr || max_wrtmp_addr == 0) {
+	  max_wrtmp_addr = (ULong)addr_expr;
 	}
-	if (addr_expr < min_wrtmp_addr || min_wrtmp_addr == 0) {
-	  min_wrtmp_addr = addr_expr;
+	if ((ULong)addr_expr < min_wrtmp_addr || min_wrtmp_addr == 0) {
+	  min_wrtmp_addr = (ULong)addr_expr;
 	}
       }
       break;
@@ -190,7 +190,7 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
 
       //IRExpr* data = st->Ist.Store.data;
       //IRType type = typeOfIRExpr(tyenv, data);
-      dataAddr = st->Ist.Store.data;
+      dataAddr = (ULong) st->Ist.Store.data;
       if (dataAddr < min_store_addr || min_store_addr == 0) {
 	min_store_addr = dataAddr;
       }
@@ -203,7 +203,7 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
     case Ist_StoreG:
       //tl_assert(cur_ins_addr != 0);
       //tl_assert(cur_ins_len != 0);
-      dataAddr = st->Ist.StoreG.details->addr;
+      dataAddr = (ULong) st->Ist.StoreG.details->addr;
       if (dataAddr < min_storeg_addr || min_storeg_addr == 0) {
 	min_storeg_addr = dataAddr;
       }
@@ -215,11 +215,11 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
     case Ist_LoadG:
       //tl_assert(cur_ins_addr != 0);
       //tl_assert(cur_ins_len != 0);
-      dataAddr = st->Ist.LoadG.details->addr;
-      if (dataAddr > min_loadg_addr || min_loadg_addr == 0) {
+      dataAddr = (ULong) st->Ist.LoadG.details->addr;
+      if (dataAddr < min_loadg_addr || min_loadg_addr == 0) {
 	min_loadg_addr = dataAddr;
       }
-      if (dataAddr < max_loadg_addr || max_loadg_addr == 0) {
+      if (dataAddr > max_loadg_addr || max_loadg_addr == 0) {
 	max_loadg_addr = dataAddr;
       }      
       loadg_count++;
@@ -252,6 +252,45 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
   return bb;
 }
 
+static void dg_dump_stats(VgFile* output_file) {
+  ULong ins_addr_diff;
+  ULong load_addr_diff;
+  ULong store_addr_diff;
+  ULong wrtmp_addr_diff;
+  ULong storeg_addr_diff;
+  VG_(fprintf)(output_file, "SBEnter %llu\n", sb_enter);
+  VG_(fprintf)(output_file, "SBExit %llu\n", sb_exit);
+  VG_(fprintf)(output_file, "InsCount %llu\n", ins_count);
+  VG_(fprintf)(output_file, "MaxInsAddr %llu\n", max_ins_addr);
+  VG_(fprintf)(output_file, "MinInsAddr %llu\n", min_ins_addr);
+  ins_addr_diff = max_ins_addr - min_ins_addr;
+  VG_(fprintf)(output_file, "InsAddrDiff %llu\n", ins_addr_diff);
+  VG_(fprintf)(output_file, "MaxLoadAddr %llu\n", max_loadg_addr);
+  VG_(fprintf)(output_file, "MinLoadAddr %llu\n", min_loadg_addr);
+  load_addr_diff = max_loadg_addr - min_loadg_addr;
+  VG_(fprintf)(output_file, "LoadAddrDiff %llu\n", load_addr_diff);
+  VG_(fprintf)(output_file, "LoadCount %llu\n", loadg_count);
+  VG_(fprintf)(output_file, "MaxStoreAddr %llu\n", max_store_addr);
+  VG_(fprintf)(output_file, "MinStoreAddr %llu\n", min_store_addr);
+  store_addr_diff = max_store_addr - min_store_addr;
+  VG_(fprintf)(output_file, "StoreAddrDiff %llu\n", store_addr_diff);
+  VG_(fprintf)(output_file, "StoreCount %llu\n", store_count);
+  VG_(fprintf)(output_file, "MinWrTmpAddr %llu\n", min_wrtmp_addr);
+  VG_(fprintf)(output_file, "MaxWrTmpAddr %llu\n", max_wrtmp_addr);
+  wrtmp_addr_diff = max_wrtmp_addr - min_wrtmp_addr;
+  VG_(fprintf)(output_file, "WrTmpDiff %llu\n", wrtmp_addr_diff);
+  VG_(fprintf)(output_file, "WrTmpCount %llu\n", wrtmp_count);
+  VG_(fprintf)(output_file, "MaxStoreGAddr %llu\n", max_storeg_addr);
+  VG_(fprintf)(output_file, "MinStoreGAddr %llu\n", min_storeg_addr);
+  storeg_addr_diff = max_storeg_addr - min_storeg_addr;
+  VG_(fprintf)(output_file, "StoreGAddrDiff %llu\n", storeg_addr_diff);
+  VG_(fprintf)(output_file, "StoreGCount %llu\n", storeg_count);
+  VG_(fprintf)(output_file, "DirtyCount %llu\n", dirty_count);
+  VG_(fprintf)(output_file, "CASCount %llu\n", cas_count);
+  VG_(fprintf)(output_file, "LLSCCount %llu\n", llsc_count);
+  VG_(fprintf)(output_file, "ExitCount %llu\n", exit_count);
+}
+
 static void dg_fini(Int exitcode)
 {
   Time end_time_ms = VG_(read_millisecond_timer)();
@@ -261,28 +300,7 @@ static void dg_fini(Int exitcode)
   VgFile* output_file = VG_(fopen)(clo_output_file,
 				   VKI_O_WRONLY|VKI_O_CREAT|VKI_O_TRUNC,
 				   VKI_S_IRUSR|VKI_S_IWUSR);
-  VG_(fprintf)(output_file, "SBEnter %llu\n", sb_enter);
-  VG_(fprintf)(output_file, "SBExit %llu\n", sb_exit);
-  VG_(fprintf)(output_file, "InsCount %llu\n", ins_count);
-  VG_(fprintf)(output_file, "MaxInsAddr %llu\n", max_ins_addr);
-  VG_(fprintf)(output_file, "MinInsAddr %llu\n", min_ins_addr);
-  VG_(fprintf)(output_file, "MaxLoadAddr %llu\n", max_loadg_addr);
-  VG_(fprintf)(output_file, "MinLoadAddr %llu\n", min_loadg_addr);
-  VG_(fprintf)(output_file, "LoadGCount %llu\n", loadg_count);
-  VG_(fprintf)(output_file, "MaxStoreAddr %llu\n", max_store_addr);
-  VG_(fprintf)(output_file, "MinStoreAddr %llu\n", min_store_addr);
-  VG_(fprintf)(output_file, "StoreCount %llu\n", store_count);
-  VG_(fprintf)(output_file, "MinWrTmpAddr %llu\n", min_wrtmp_addr);
-  VG_(fprintf)(output_file, "MaxWrTmpAddr %llu\n", max_wrtmp_addr);
-  VG_(fprintf)(output_file, "WrTmpCount %llu\n", wrtmp_count);
-  VG_(fprintf)(output_file, "MaxStoreGAddr %llu\n", max_storeg_addr);
-  VG_(fprintf)(output_file, "MinStoreGAddr %llu\n", min_storeg_addr);
-  VG_(fprintf)(output_file, "StoreGCount %llu\n", storeg_count);
-  VG_(fprintf)(output_file, "DirtyCount %llu\n", dirty_count);
-  VG_(fprintf)(output_file, "CASCount %llu\n", cas_count);
-  VG_(fprintf)(output_file, "LLSCCount %llu\n", llsc_count);
-  VG_(fprintf)(output_file, "ExitCount %llu\n", exit_count);
-  
+  dg_dump_stats(output_file);
   VG_(fclose)(output_file);
 }
 
