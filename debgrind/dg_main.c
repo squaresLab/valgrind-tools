@@ -3,7 +3,7 @@
 /*--- Debgrind: Based on the minimal Valgrind tool.      dg_main.c ---*/
 /*--------------------------------------------------------------------*/
 
-/* DSK -- Modifying Nulgrind to make Debgrind, to be lighter weight 
+/* DSK -- Modifying Nulgrind to make Debgrind, to be lighter weight
    than the tool based on lackey. */
 
 /*
@@ -37,6 +37,7 @@
 #include "pub_tool_libcprint.h"
 #include "pub_tool_debuginfo.h"
 #include "pub_tool_libcbase.h"
+#include "pub_tool_libcproc.h"
 #include "pub_tool_options.h"
 #include "pub_tool_machine.h"     // VG_(fnptr_to_fnentry)
 #include "pub_tool_vki.h"
@@ -47,11 +48,13 @@
 /*------------------------------------------------------------*/
 static const HChar* clo_output_file = "output.out";
 static ULong clo_ins_dump_interval = 0;
+static ULong clo_ms_dump_interval = 0;
 
 static Bool dg_process_cmd_line_option(const HChar* arg)
 {
   if VG_STR_CLO(arg, "--output-file",            clo_output_file) {}
   else if VG_INT_CLO(arg, "--ins-dump-interval", clo_ins_dump_interval) {}
+  else if VG_INT_CLO(arg, "--ms-dump-interval",  clo_ms_dump_interval) {}
   else
     return False;
   tl_assert(clo_output_file);
@@ -60,7 +63,7 @@ static Bool dg_process_cmd_line_option(const HChar* arg)
 }
 
 static void dg_print_usage(void)
-{  
+{
    VG_(printf)(
 "    --output-file=<name>           Specify a file for output.\n"
 "    --ins-dump-interval=<int>      Dump a summary every X instructions.\n"
@@ -68,7 +71,7 @@ static void dg_print_usage(void)
 }
 
 static void dg_print_debug_usage(void)
-{  
+{
    VG_(printf)(
 "    (none)\n"
    );
@@ -105,8 +108,8 @@ static ULong exit_count = 0;
 static Addr cur_ins_addr = 0;
 static UInt cur_ins_len = 0;
 
-typedef 
-  IRExpr 
+typedef
+  IRExpr
   IRAtom;
 
 VgFile* output_file;
@@ -121,7 +124,7 @@ static void dg_post_clo_init(void)
 				   VKI_S_IRUSR|VKI_S_IWUSR);
 }
 
-static void dg_dump_stats(VgFile* output_file) {
+static void dg_dump_stats(void) {
   ULong ins_addr_diff;
   ULong load_addr_diff;
   ULong store_addr_diff;
@@ -165,7 +168,7 @@ static void dg_dump_stats(VgFile* output_file) {
 static
 IRSB* dg_instrument ( VgCallbackClosure* closure,
                       IRSB* bb,
-                      const VexGuestLayout* layout, 
+                      const VexGuestLayout* layout,
                       const VexGuestExtents* vge,
                       const VexArchInfo* archinfo_host,
                       IRType gWordTy, IRType hWordTy )
@@ -189,7 +192,7 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
     IRStmt* st = bb->stmts[i];
     if (!st || st->tag == Ist_NoOp) continue;
     ir_stmts++;
-  
+
     switch (st->tag) {
     case Ist_NoOp:
     case Ist_AbiHint:
@@ -203,10 +206,10 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
    instruction. (See VEX/pub/libvex_ir.h, which has useful documentation.)
        */
       ins_count++;
-      dump = ((clo_ins_dump_interval != 0) && 
+      dump = ((clo_ins_dump_interval != 0) &&
 	      (ins_count % clo_ins_dump_interval == 0));
       if (dump) {
-	dg_dump_stats(output_file);
+	dg_dump_stats();
       }
 
       iaddr = st->Ist.IMark.addr;
@@ -219,13 +222,13 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
       }
       cur_ins_addr = iaddr;
       cur_ins_len = ilen;
-      
+
       break;
     case Ist_WrTmp:
       //tl_assert(cur_ins_addr != 0);
       //tl_assert(cur_ins_len != 0);
       wrtmp_count++;
-      
+
       data = st->Ist.WrTmp.data;
       if (data->tag == Iex_Load) {
 	addr_expr = data->Iex.Load.addr;
@@ -275,7 +278,7 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
       }
       if (dataAddr > max_loadg_addr || max_loadg_addr == 0) {
 	max_loadg_addr = dataAddr;
-      }      
+      }
       loadg_count++;
       break;
     case Ist_Dirty:
@@ -314,7 +317,7 @@ static void dg_fini(Int exitcode)
   VG_(umsg)("Elapsed tool time: %lld\n", end_time_ms - start_time_ms);
 
 
-  dg_dump_stats(output_file);
+  dg_dump_stats();
   VG_(fclose)(output_file);
 }
 
@@ -332,7 +335,7 @@ static void dg_pre_clo_init(void)
   VG_(basic_tool_funcs)        (dg_post_clo_init,
 				dg_instrument,
 				dg_fini);
-  
+
   VG_(needs_command_line_options)(dg_process_cmd_line_option,
 				  dg_print_usage,
 				  dg_print_debug_usage);
