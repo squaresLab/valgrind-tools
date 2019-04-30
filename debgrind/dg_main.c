@@ -47,8 +47,8 @@
 /*--- Command line options                                 ---*/
 /*------------------------------------------------------------*/
 static const HChar* clo_output_file = "output.out";
-static ULong clo_ins_dump_interval = 0;
-static ULong clo_ms_dump_interval = 0;
+static UInt clo_ins_dump_interval = 0;
+static UInt clo_ms_dump_interval = 0;
 
 static Bool dg_process_cmd_line_option(const HChar* arg)
 {
@@ -113,6 +113,7 @@ typedef
   IRAtom;
 
 VgFile* output_file;
+static ULong next_dump_ins_count = 0;
 
 /*------------------------------------------------------------*/
 /*--- Instrumentation                                      ---*/
@@ -124,12 +125,13 @@ static void dg_post_clo_init(void)
 				   VKI_S_IRUSR|VKI_S_IWUSR);
 }
 
-static void dg_dump_stats(void) {
+static void dg_dump_stats(ULong ins_tick_count) {
   ULong ins_addr_diff;
   ULong load_addr_diff;
   ULong store_addr_diff;
   ULong wrtmp_addr_diff;
   ULong storeg_addr_diff;
+  VG_(fprintf)(output_file, "%llu\n", ins_tick_count);
   VG_(fprintf)(output_file, "SBEnter %llu\n", sb_enter);
   VG_(fprintf)(output_file, "SBExit %llu\n", sb_exit);
   VG_(fprintf)(output_file, "InsCount %llu\n", ins_count);
@@ -182,6 +184,20 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
   IRAtom* addr_expr;
   Bool dump = False;
 
+  // If we are exactly at a dump interval
+  dump = ((clo_ins_dump_interval != 0) &&
+	  (ins_count % clo_ins_dump_interval == 0));
+  // If we've recently missed a dump interval
+
+  if (next_dump_ins_count <= ins_count) {
+    dump = True;
+  }
+  if (dump) {
+    dg_dump_stats(next_dump_ins_count);
+    next_dump_ins_count = (((ins_count / clo_ins_dump_interval) + 1) *
+			   clo_ins_dump_interval);
+  }
+
   sb_enter++;
 
   i = 0;
@@ -206,11 +222,6 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
    instruction. (See VEX/pub/libvex_ir.h, which has useful documentation.)
        */
       ins_count++;
-      dump = ((clo_ins_dump_interval != 0) &&
-	      (ins_count % clo_ins_dump_interval == 0));
-      if (dump) {
-	dg_dump_stats();
-      }
 
       iaddr = st->Ist.IMark.addr;
       ilen = st->Ist.IMark.len;
@@ -317,7 +328,7 @@ static void dg_fini(Int exitcode)
   VG_(umsg)("Elapsed tool time: %lld\n", end_time_ms - start_time_ms);
 
 
-  dg_dump_stats();
+  dg_dump_stats(ins_count);
   VG_(fclose)(output_file);
 }
 
