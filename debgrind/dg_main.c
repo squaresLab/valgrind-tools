@@ -189,13 +189,16 @@ IRSB* dg_instrument ( VgCallbackClosure* closure,
 	  (ins_count % clo_ins_dump_interval == 0));
   // If we've recently missed a dump interval
 
-  if (next_dump_ins_count <= ins_count) {
+  if (next_dump_ins_count <= ins_count && next_dump_ins_count != 0) {
     dump = True;
   }
   if (dump) {
     dg_dump_stats(next_dump_ins_count);
-    next_dump_ins_count = (((ins_count / clo_ins_dump_interval) + 1) *
-			   clo_ins_dump_interval);
+    if (next_dump_ins_count != 0) {
+      next_dump_ins_count = (((ins_count / clo_ins_dump_interval) + 1) *
+			     clo_ins_dump_interval);
+    }
+    else {next_dump_ins_count = clo_ins_dump_interval;}
   }
 
   sb_enter++;
