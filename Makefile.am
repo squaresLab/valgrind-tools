@@ -1,7 +1,7 @@
 
 AUTOMAKE_OPTIONS = foreign 1.10 dist-bzip2
 
-include $(top_srcdir)/Makefile.all.am 
+include $(top_srcdir)/Makefile.all.am
 
 TOOLS =		memcheck \
 		cachegrind \
@@ -11,7 +11,8 @@ TOOLS =		memcheck \
 		none \
 		helgrind \
 		drd \
-		debgrind
+		debgrind \
+		featred
 
 EXP_TOOLS = 	exp-sgcheck \
 		exp-bbv \
