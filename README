@@ -1,3 +1,9 @@
+Deby Katz 2020 -- Note:
+This repository contains Valgrind 3.13 with the inclusion of an additional tool:
+"debgrind" for collecting summaries of executions. The debgrind tool and
+associated modifications to Valgrind's build infrastructure are by Deby Katz,
+written in 2017-2020. See README_debgrind for instructions on installing
+and running Valgrind with the debgrind tool.
 
 Release notes for Valgrind
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
